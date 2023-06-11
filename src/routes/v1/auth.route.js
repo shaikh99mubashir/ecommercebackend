@@ -11,9 +11,16 @@ const router = express.Router();
 router.post('/register',  authController.register);
 router.post('/login', validate(authValidation.login), authController.login);
 router.post('/addCategory', authController.createCategory);
+router.delete('/deleteCategory', authController.deleteCategories);
+
 router.post('/addProduct', authController.createProduct);
 router.get('/getcategories', authController.getCategories);
 router.get('/getproduct', authController.getProduct);
+
+
+
+
+router.post('/doPayment', authController.chargePayment);
 
 router.post('/categoryimage', categoryImage.single('category-image'), authController.Image)
 router.post('/productimage', productImage.single('product-image'), authController.Image)

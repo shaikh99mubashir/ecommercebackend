@@ -2,6 +2,10 @@ const mongoose = require('mongoose')
 
 const categorySchema = mongoose.Schema(
     {
+        id: {
+            type: String,
+            // require: true,
+        },
         login_ID: {
             type: String,
             // require: true,

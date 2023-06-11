@@ -3,6 +3,9 @@ const catchAsync = require('../utils/catchAsync');
 const { authService, userService, tokenService, emailService } = require('../services');
 const Product = require('../models/addProduct')
 const Category  = require('../models/addCategory')
+const doPayment  = require('../models/doPayment')
+require('dotenv').config()
+const stripe = require('stripe')(process.env.STRIPE_SK)
 const register = catchAsync(async (req, res) => {
   const user = await userService.createUser(req.body);
   const tokens = await tokenService.generateAuthTokens(user);
@@ -77,6 +80,33 @@ const getCategories = catchAsync(async (req, res) => {
     });
   }
 });
+const deleteCategories = catchAsync(async (req, res) => {
+  try {
+    const { id } = req.body;
+    console.log('id',id);
+    const deletedCategory = await Category.findByIdAndDelete(id);
+    if (deletedCategory) {
+      res.json({
+        status: true,
+        message: 'Category deleted successfully',
+        data: deletedCategory
+      });
+    } else {
+      res.json({
+        status: false,
+        message: 'Category not found'
+      });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      status: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+
 
 const getProduct = catchAsync(async (req, res) => {
   try {
@@ -95,22 +125,40 @@ const getProduct = catchAsync(async (req, res) => {
   }
 });
 
-// const getCategories = catchAsync(async (req, res) => {
-//   try {
-//     const categories = await Category.find({});
-//     res.json({
-//       data: categories,
-//       status: true,
-//       message: 'Data retrieved successfully'
-//     });
-//   } catch (error) {
-//     console.log('error', error);
-//     res.status(500).json({
-//       status: false,
-//       message: 'Internal server error'
-//     });
-//   }
-// });
+
+
+const chargePayment = catchAsync(async (req, res) => {
+  const token = stripe.tokens
+    .create({
+      card: {
+        number: req.body.cardNumber,
+        exp_month: req.body.expiryMonth,
+        exp_year: req.body.expiryYear,
+        cvc: req.body.cvc,
+      },
+    })
+    .then((response) => {
+      return stripe.charges
+        .create({
+          amount: Math.ceil(req.body.amount * 100), // Unit: cents
+          currency: 'usd',
+          source: response.id,
+          description: 'Test payment',
+        })
+        .then((result) =>
+          res.json({
+            message: 'Amount successfully transfer',
+            status: true,
+            result,
+          }),
+        )
+    })
+    .catch((error) => {
+      console.log(error)
+    })
+});
+
+
 
 // Handle image upload request
 const Image = catchAsync(async (req, res) => {
@@ -167,8 +215,11 @@ module.exports = {
   sendVerificationEmail,
   verifyEmail,
   createCategory,
+  deleteCategories,
   createProduct,
   Image,
   getCategories,
   getProduct,
+  chargePayment,
+
 };
